@@ -1,203 +1,226 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Abi from "../artifacts/contracts/AlphaDrop.sol/AlphaDrop.json";
 import { ethers } from "ethers";
+import { Link } from "react-router-dom";
 
 const Form = () => {
-  // const [contractAddress, setContractAddress] = useState("");
+  const [positions, setPositions] = useState("");
+  const [vestingPeriod, setVestingPeriod] = useState("")
+  const [, setDepositId] = useState("");
+  const [tokenAddress, setTokenAddress] = useState("");
+  const [amountPerPosition, setAmountPerPosition] = useState("");
+  const [buttonActivity, setButtonActivity] = useState("Create Links");
+  const [contractAddress] = useState("0xCfa88c4B7Cd2B3e87F25Df0292d7E961e69a8084");
+  const [requirePreviousTx, setRequirePreviousTx] = useState(false);
+  const [requireTokens, setRequireTokens] = useState(false);
+  const [requireProofOfPersonhood, setRequireProofOfPersonhood] = useState(false);
+  const [links, setLinks] = useState([]);
+  const [selected, setSelected] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
   const passwords = [];
   const hashedpasswords = [];
 
-  const [positions, setPositions] = useState("");
-  const [vestingPeriod, setVestingPeriod] = useState("");
-  const [protocolAddress, setProtocolAddress] = useState("");
+  const options = [
+    {
+      value: "0xD1448Ca6ED3dfbCC5927ba6f2A4c032677FdADc8",
+      label: "LendingFi (Deposit Position)",
+    },
+  ];
 
-  const [chainId, setChainId] = useState("");
-
-  const [, setDepositId] = useState("");
-  const [tokenAddress, setTokenAddress] = useState("");
-  const [amountPerPosition, setAmountPerPosition] = useState("");
-  const [totalAmount, setTotalAmount] = useState("");
-  const [contractAddress, setContractAddress] = useState("");
-
-  const [requirePreviousTx, setRequirePreviousTx] = useState(false);
-  const [requireTokens, setRequireTokens] = useState(false);
-  const [requireProofOfPersonhood, setRequireProofOfPersonhood] =useState(false);
-
-  const [links, setLinks] = useState([]);
-
- 
   const accountChecker = async () => {
-    const accounts = await ethereum.request({
-      method: "eth_requestAccounts",
-    });
+    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
     sessionStorage.setItem("address", accounts[0]);
   };
 
-  const getChainId = async () => {
-
-    if (window.ethereum) {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const network = await provider.getNetwork();
-      setChainId(network.chainId);
-      console.log(network.chainId);
-
-
-      if (network.chainId === 7701) {
-        setContractAddress("0xB1EA59521a88405D313d412f3f3EFCF4a329f2dc");
-      } else if (network.chainId === 1029) {
-        setContractAddress("0xD86EB7E663deF7d63426cc668982D3F39cF5f8E4");
-      }
-  };
-}
   useEffect(() => {
     accountChecker();
-    getChainId();
   }, []);
 
   useEffect(() => {
-    // Set contract address based on chainId
-    if (chainId === "7701") {
-      setContractAddress("0xB1EA59521a88405D313d412f3f3EFCF4a329f2dc");
-    } else if (chainId === "1029") {
-      setContractAddress("0xD86EB7E663deF7d63426cc668982D3F39cF5f8E4");
-    }
-  }, [chainId]); // Update contractAddress whenever chainId changes
+    const getChainId = async () => {
+      if (window.ethereum) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const { chainId } = await provider.getNetwork();
+        console.log(chainId);
+        if (chainId.toString() !== "199") {
+          alert("Please connect to the Bttc Network");
+        }
+      } else {
+        console.error("MetaMask is not installed.");
+      }
+    };
 
-
-
-
+    getChainId();
+  }, []);
 
   const ethereum = useMemo(() => {
     const { ethereum } = window;
     if (typeof ethereum !== "undefined") {
       return ethereum;
     } else {
-      // Handle the case where Ethereum is not available
-      return null; // or some other default value
+      return null;
     }
   }, []);
 
-
-
   const generateRandomStrings = (length, count) => {
-    const characters =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    // Initialize an array to store generated passwords
-
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let j = 0; j < count; j++) {
       let result = "";
       for (let i = 0; i < length; i++) {
-        result += characters.charAt(
-          Math.floor(Math.random() * characters.length)
-        );
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
       }
-      passwords.push(result); // Store each generated password in the array
-
+      passwords.push(result);
       const utf8Bytes = ethers.utils.toUtf8Bytes(result);
       const encodedPassword = ethers.utils.keccak256(utf8Bytes);
       hashedpasswords.push(encodedPassword);
-      console.log(encodedPassword);
     }
-
-    return passwords; // Return the array of generated passwords
+    return passwords;
   };
 
-  // Function to interact with the contract and handle events
-  const createDeposits = async () => {
-    // Generate random strings (assuming this function is defined elsewhere)
-    generateRandomStrings(6, positions);
+  const TokenAbi = [
+    "function approve(address _spender, uint256 _value) external returns (bool success)",
+    "function allowance(address owner, address spender) external view returns (uint256)",
+    "function transfer(address _to, uint256 _value) external returns (bool success)",
+    "function balanceOf(address _owner) external view returns (uint256)",
+  ];
 
+  const getAllowance = async () => {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const tokenContract = new ethers.Contract(tokenAddress, TokenAbi, provider);
+    const allowance = await tokenContract.allowance(signer.getAddress(), contractAddress);
+    return allowance;
+  };
+
+  const getBalance = async () => {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const tokenContract = new ethers.Contract(tokenAddress, TokenAbi, provider);
+    const balance = await tokenContract.balanceOf(signer.getAddress());
+    return balance;
+  };
+
+  const approveToken = async () => {
     try {
-      console.log(
-        contractAddress,
-        hashedpasswords,
-        positions,
-        vestingPeriod,
-        tokenAddress,
-        amountPerPosition,
-        protocolAddress,
-        true
+      const balance = await getBalance();
+      const allowance = await getAllowance();
+      console.log("Allowance:", Number(allowance), "Balance:", Number(balance));
+
+      // Check if token has enough balance
+      if (Number(balance) > amountPerPosition) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const tokenContract = new ethers.Contract(tokenAddress, TokenAbi, signer);
+        const amountInWei = ethers.utils.parseUnits(amountPerPosition, 18); // Adjust decimals if needed
+        console.log("Approving token...", tokenAddress, amountInWei);
+        if (allowance.lt(amountInWei)) {
+          setButtonActivity("Approving Token...");
+          const tx = await tokenContract.approve(contractAddress, amountInWei);
+          await tx.wait();
+          console.log("Token approved by relayer:", tx);
+        } else {
+          console.log("Token already approved with sufficient allowance");
+        }
+      } else {
+        alert("Insufficient balance");
+        return;
+      }
+    } catch (error) {
+      console.error("Error approving token:", error);
+    }
+  };
+
+  const GenerateLinks = (receipt) => {
+    const eventInterface = new ethers.utils.Interface([
+      "event DepositCreated(uint256 indexed _depositId, address indexed _senderAddress, uint256 _amount)",
+    ]);
+
+    const logs = receipt.logs;
+    const eventTopic = eventInterface.getEventTopic("DepositCreated");
+    const filteredLogs = logs.filter((log) => log.topics.includes(eventTopic));
+    let depositId;
+
+    if (filteredLogs.length > 0) {
+      const log = filteredLogs[0];
+      const parsedLog = eventInterface.parseLog(log);
+      depositId = parsedLog.args["_depositId"].toString();
+      setDepositId(depositId);
+      console.log("Deposit ID:", depositId);
+
+      setButtonActivity("Create links");
+      const newLinks = passwords.map((password) =>
+        `https://alphadrop.netlify.app/claim?depositId=${depositId}&password=${password}`
       );
-      // Initialize provider and signer
-      const provider = new ethers.providers.Web3Provider(ethereum); // Assuming you're using MetaMask
+      setLinks((prevLinks) => [...prevLinks, ...newLinks]);
+      newLinks.forEach(link => console.log(link));
+    } else {
+      console.log("DepositCreated event not found in logs");
+    }
+  };
+
+  const createDeposits = async () => {
+    generateRandomStrings(6, positions);  // No need to await as this function is synchronous
+    await approveToken();
+    setButtonActivity("Generating links...");
+  
+    console.log(
+      contractAddress,
+      hashedpasswords,
+      positions,
+      vestingPeriod,
+      tokenAddress,
+      amountPerPosition,
+      selected,
+      true
+    );
+  
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-
-      // Create a contract instance
       const contract = new ethers.Contract(contractAddress, Abi.abi, signer);
-
-      // Execute the contract function (createDeposits)
+  
       const tx = await contract.createDeposits(
         hashedpasswords,
         positions,
         vestingPeriod,
         tokenAddress,
         amountPerPosition,
-        protocolAddress,
+        selected,
         true
       );
-
-      // console.log("Transaction hash:", tx.hash);
-
-      // Wait for the transaction to be mined
+  
       const receipt = await tx.wait();
       console.log("Transaction logs:", receipt);
-
-      const eventInterface = new ethers.utils.Interface([
-        "event DepositCreated(uint256 indexed _depositId, address indexed _senderAddress, uint256 _amount)",
-      ]);
-
-      // Find the event in the logs
-      const logs = receipt.logs;
-      const eventTopic = eventInterface.getEventTopic("DepositCreated");
-      const filteredLogs = logs.filter((log) =>
-        log.topics.includes(eventTopic)
-      );
-
-      let depositId;
-      // Extract depositId from the first matching log
-      if (filteredLogs.length > 0) {
-        const log = filteredLogs[0];
-        const parsedLog = eventInterface.parseLog(log);
-        depositId = parsedLog.args["_depositId"].toString();
-        setDepositId(depositId);
-
-        console.log("Deposit ID:", depositId);
-      } else {
-        console.log("DepositCreated event not found in logs");
-      }
-
-      for (let i = 0; i < passwords.length; i++) {
-        console.log(
-          `http://localhost:3000/claim?depositId=${depositId}&password=${passwords[i]}`
-        );
-        setLinks((prevLinks) => [
-          ...prevLinks,
-          `http://localhost:3000/claim?depositId=${depositId}&password=${passwords[i]}`,
-        ]);
-      }
+  
+      setButtonActivity("Successfully created links...");
+  
+      setTimeout(() => {
+        GenerateLinks(receipt);
+      }, 2000);
     } catch (error) {
       console.error("Error creating deposits:", error);
     }
   };
 
-  // console.log(
-  //   `https://localhost:3000/claim?depositId=${1}&password=${passwords[0]}`
-  // );
+  
 
+
+
+  
   return (
     <>
-      <div className="bg-[#f2f2f7]">
+      <div className="">
         <div className="flex h-screen flex-col  mt-12 items-center ">
           <div className="max-h-auto mx-auto max-w-xl">
             <div className="mb-8 space-y-3">
-              <p className="text-3xl text-gray-600 font-bold font-heading">
+              <p className="text-4xl text-gray-600 font-bold font-heading">
                 AlphaDrop
               </p>
-              <p className="text-gray-500 font-heading font-semibold">
+              <p className="text-gray-500 text-lg font-heading font-semibold">
                 Revolutionizing Airdrops , with sponsored Defi positions .{" "}
                 <br />
-                Reward your community 🎁 for their active participation !
+                🎁 Reward your community for their active participation !
               </p>
             </div>
 
@@ -207,7 +230,7 @@ const Form = () => {
                   <div className="space-y-2">
                     <label
                       htmlFor="positions"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="text-md font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
                       Number of Positions
                     </label>
@@ -216,7 +239,7 @@ const Form = () => {
                       id="positions"
                       value={positions}
                       onChange={(e) => setPositions(e.target.value)}
-                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-md file:border-0 file:bg-transparent file:text-md file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Number Of positions"
                     />
                   </div>
@@ -224,7 +247,7 @@ const Form = () => {
                   <div className="space-y-2">
                     <label
                       htmlFor="vestingPeriod"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="text-md font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
                       Vesting Period
                     </label>
@@ -233,7 +256,7 @@ const Form = () => {
                       id="vestingPeriod"
                       value={vestingPeriod}
                       onChange={(e) => setVestingPeriod(e.target.value)}
-                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-md file:border-0 file:bg-transparent file:text-md file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Vesting Period (Days)"
                     />
                   </div>
@@ -241,7 +264,7 @@ const Form = () => {
                   <div className="space-y-2">
                     <label
                       htmlFor="tokenAddress"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="text-md font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
                       Token Address
                     </label>
@@ -250,7 +273,7 @@ const Form = () => {
                       id="tokenAddress"
                       value={tokenAddress}
                       onChange={(e) => setTokenAddress(e.target.value)}
-                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-md file:border-0 file:bg-transparent file:text-md file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Token Address"
                     />
                   </div>
@@ -258,7 +281,7 @@ const Form = () => {
                   <div className="space-y-2">
                     <label
                       htmlFor="amountPerPosition"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="text-md font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
                       Tokens Per Position
                     </label>
@@ -268,47 +291,94 @@ const Form = () => {
                       id="amountPerPosition"
                       value={amountPerPosition}
                       onChange={(e) => setAmountPerPosition(e.target.value)}
-                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-md file:border-0 file:bg-transparent file:text-md file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Amount Per Position"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label
-                      htmlFor="protocolAddress"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      htmlFor=""
+                      className="text-md font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
                       Protocol Address
                     </label>
 
-                    <select
-                      id="protocolAddress"
-                      value={protocolAddress}
-                      onChange={(e) => setProtocolAddress(e.target.value)}
-                      className="order-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="" disabled>
-                        Select a protocol address
-                      </option>
-                      <option value="0x8668FE1fEa5963b52fbecbeE02ADED9F13f2B47C">
-                        LendingFi (Deposit Position)
-                      </option>
-                      <option value="0x0Ba090AD0af26a95dfa7D8BC344288496416613f">
-                        LendingFi (Deposit Position 2)
-                      </option>
-                      <option value="0x0Ba090AD0af26a95dfa7D8BC344288496416613f">
-                        Sunswap (Liquidity Position)
-                      </option>
-                      <option value="0x8668FE1fEa5963b52fbecbeE02ADED9F13f2B47C">
-                        SlingShot.fi (Liquidity Position)
-                      </option>
-                    </select>
+                    <div className="relative inline-block w-full">
+                      <div
+                        className="order-input bg-[white] ring-offset-background placeholder:text-muted-foreground flex h-10 w-full items-center justify-between rounded-md border px-3 py-2 text-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                        onClick={() => setIsOpen(!isOpen)}
+                      >
+                        {selected
+                          ? options.find((option) => option.value === selected)
+                              .label
+                          : "Select a protocol address"}
+                        <svg
+                          className="w-4 h-4 ml-2"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      {isOpen && (
+                        <div className="absolute mt-1 w-full rounded-md bg-white shadow-lg z-10">
+                          <ul className="max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-md">
+                            {options.map((option) => (
+                              <li
+                                key={option.value}
+                                className={`cursor-pointer select-none relative py-2 pl-3 pr-9 ${
+                                  selected === option.value
+                                    ? "text-white bg-indigo-600"
+                                    : "text-gray-900"
+                                }`}
+                                onClick={() => {
+                                  setSelected(option.value);
+                                  setIsOpen(false);
+                                }}
+                              >
+                                <span
+                                  className={`block truncate ${
+                                    selected === option.value
+                                      ? "font-semibold"
+                                      : "font-normal"
+                                  }`}
+                                >
+                                  {option.label}
+                                </span>
+                                {selected === option.value && (
+                                  <span className="absolute inset-y-0 right-0 flex items-center pr-4">
+                                    <svg
+                                      className="w-5 h-5"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 4.707 7.293a1 1 0 10-1.414 1.414l5 5a1 1 0 001.414 0l7-7a1 1 0 000-1.414z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Requirements (Checkboxes) */}
 
-                <label className="block text-sm font-heading  font-semibold text-gray-700 mb-1">
+                <label className="block text-md font-heading  font-semibold text-gray-700 mb-1">
                   Requirements:
                 </label>
                 <div className="flex items-center  font-heading mb-2">
@@ -321,7 +391,7 @@ const Form = () => {
                   />
                   <label
                     htmlFor="requirePreviousTx"
-                    className="text-sm  text-gray-700"
+                    className="text-md  text-gray-600  font-heading"
                   >
                     Demonstrating a history of prior transactions within the
                     protocol.
@@ -337,7 +407,7 @@ const Form = () => {
                   />
                   <label
                     htmlFor="requireTokens"
-                    className="text-sm text-gray-700"
+                    className="text-md text-gray-600  font-heading"
                   >
                     Owning a minimum quantity of tokens.
                   </label>
@@ -354,7 +424,7 @@ const Form = () => {
                   />
                   <label
                     htmlFor="requireProofOfPersonhood"
-                    className="text-sm text-gray-700"
+                    className="text-md text-gray-600 font-heading"
                   >
                     Requiring proof of personhood (This ensures that only humans
                     can claim it)
@@ -363,18 +433,29 @@ const Form = () => {
 
                 <button
                   onClick={createDeposits}
-                  className="ring-offset-background  focus-visible:ring-ring  flex h-10 w-full items-center justify-center whitespace-nowrap rounded-md bg-[#7272ab] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                  className=" flex h-10 w-full items-center justify-center hover:bg-black border-none  rounded-md bg-[#7272ab] px-4 py-2 text-md font-medium text-white "
                 >
-                  Create Deposits
+                  {buttonActivity}
                 </button>
               </div>
             </div>
+            <div className="flex w-full flex-col space-y-2 font-heading  font-medium max-h-32  overflow-scroll">
+              {links.length > 0 && (
+                <div className="text-start text-gray-500 font-bold  text-2xl   font-heading">
+                  Claim Links
+                </div >
+              )}
 
-            <div className="text-center font-heading underline underline-offset-2 te font-medium text-gray-400">
               {links.map((link, index) => (
-                <p className=" text-gray-800" key={index}>
-                  {link}{" "}
-                </p>
+                <Link
+                  to={link}
+                  className="text-start ml-8 text-xl text-[#7272ab] underline underline-offset-2 "
+                  key={index}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {index+1}.{" "} alphaDrop.claim.link#{index}
+                </Link>
               ))}
             </div>
           </div>

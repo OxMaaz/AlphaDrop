@@ -3,24 +3,19 @@ require("@nomicfoundation/hardhat-toolbox");
 /** @type import('hardhat/config').HardhatUserConfig */
 
 
-// const BTTC_TESTNET_URL = "https://pre-rpc.bittorrentchain.io/"
-const PRIVATE_KEY = "c4f2df8e931caf7e567ea5a048a6461a25eb75e606a91358d222ef6407d9b5e1"
-const CANTO_TESTNET_URL= `https://canto-testnet.plexnode.wtf`
+const BTTC_URL = "https://rpc.bittorrentchain.io"
+const PRIVATE_KEY = "22fc727badbaa35e094b65316ec534acb7a8a5d4dfe95eea33f1db71643a6aa0"
+
 
 
 module.exports = {
   solidity: "0.8.24",
-//   networks: {
-//     bttctestnet: {
-//       url: BTTC_TESTNET_URL,
-//       accounts: [PRIVATE_KEY],
-//     }
-// ,
+  networks: {
+    bttcmainnet: {
+      url: BTTC_URL,
+      accounts: [PRIVATE_KEY],
+    }
+  },
 
-networks: {
-  cantotestnet: {
-    url: CANTO_TESTNET_URL,
-    accounts: [PRIVATE_KEY],
-  }
- }
+
 }

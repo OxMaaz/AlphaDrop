@@ -2,27 +2,27 @@ const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
 
 
-module.exports = buildModule("cUsdt", (m) => {
+// module.exports = buildModule("usdt", (m) => {
 
-   const usdt = m.contract("USDT");
-  return { usdt};
+//    const usdt = m.contract("USDT");
+//   return { usdt};
 
-});
-
-
+// });
 
 
-module.exports = buildModule("Lendingfi", (m) => {
+
+
+// module.exports = buildModule("Lendingfi", (m) => {
  
-  const usdtAddress = m.getParameter("usdtAddress","0x8668FE1fEa5963b52fbecbeE02ADED9F13f2B47C");
-  const collateralRatio = m.getParameter("collateralRatio", 150);
+//   const usdtAddress = m.getParameter("usdtAddress","0x9409358b1Cb54AE10Bab80c5983C940d771D6B4d");
+//   const collateralRatio = m.getParameter("collateralRatio", 150);
 
-  const lFi = m.contract("LendingFi", [usdtAddress, collateralRatio]);
+//   const lFi = m.contract("LendingFi", [usdtAddress, collateralRatio]);
 
 
-  return { lFi};
+//   return { lFi};
  
-});
+// });
 
 
 
@@ -36,11 +36,7 @@ module.exports = buildModule("alphadrop", (m) => {
 
 });
 
-// usdtModule#USDT - 0x23261542222e0FB9b295a755f6127Ec4AEE4b0Bf
-// LendingModule#LendingFi - 0x8668FE1fEa5963b52fbecbeE02ADED9F13f2B47C
-// Modules#AlphaDrop - 0xD86EB7E663deF7d63426cc668982D3F39cF5f8E4
+// usdt#USDT - 0x9409358b1Cb54AE10Bab80c5983C940d771D6B4d
+// Lendingfi#LendingFi - 0xD1448Ca6ED3dfbCC5927ba6f2A4c032677FdADc8
+// alphadrop#AlphaDrop - 0xCfa88c4B7Cd2B3e87F25Df0292d7E961e69a8084
 
-
-// cantoUsdt#USDT - 0x8668FE1fEa5963b52fbecbeE02ADED9F13f2B47C
-// canto_Lendingfi#LendingFi - 0x0Ba090AD0af26a95dfa7D8BC344288496416613f
-// canto_alphadrop#AlphaDrop - 0xB1EA59521a88405D313d412f3f3EFCF4a329f2dc
